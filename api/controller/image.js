@@ -1,13 +1,12 @@
 import { response } from 'express'
 import fs from 'fs'
-import fs2 from 'fs/promises'
+import fs2 from 'fs/promises'; 
 import util from 'util'
 import sharp from 'sharp'
 import Image from '../model/image.js'
 import { uploadsImages } from '../functions/upload-images.js'
 
 const unlinkFile = util.promisify(fs.unlink)
-const unlinkFileSync = util.promisify(fs.unlinkSync)
 
 export const getUser = async (req, res) => {
   try {
@@ -67,11 +66,13 @@ export const testUploadImge = async (req, res) => {
   try {
     const image = req.file ? req.file.filename : null
     const { name, gender } = req.body
-
+    
     if (!req.file) {
       return res.status(400).send('no file uploaded')
     }
-
+    //Permite que no se mantenga cache y para el caso de windows se pueda borrar la imagen
+    sharp.cache({ files : 0 })
+    
     const maxWidth = 800
     const maxHeight = 600
 
@@ -81,21 +82,20 @@ export const testUploadImge = async (req, res) => {
     })
       .jpeg({ quality: 80, progressive: true }) // Progressive JPEGs
       .webp({ quality: 80 }) // Convert to WebP format
-      .toFile(`./public/images/${image}`, (err, info) => {
-        if (err) {
-          console.error(`Error processing ${image}: ${err}`)
-        } else {
-          console.log(`Advanced compression applied to ${image}`)
-        }
-      })
+      .toFile(`./public/images/${image}`)
 
     const user = await Image.create({ name, gender, image })
+    await fs2.unlink(req.file.path);
     return res.status(201).json({ user, message: 'data upload successfully' })
   } catch  (error) {
     console.log(error)
     return res.status(500).json({ error, message: 'internal server error ' })
   }
 
+}
+
+const deleteImage = async (image) => {
+  unlinkFile(image)
 }
 
 export const deleteUser = async (req, res) => {
