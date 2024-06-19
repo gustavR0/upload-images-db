@@ -1,6 +1,5 @@
 import { response } from 'express'
-import fs from 'fs'
-import fs2 from 'fs/promises'; 
+import fs from 'fs'; 
 import util from 'util'
 import sharp from 'sharp'
 import Image from '../model/image.js'
@@ -85,17 +84,13 @@ export const testUploadImge = async (req, res) => {
       .toFile(`./public/images/${image}`)
 
     const user = await Image.create({ name, gender, image })
-    await fs2.unlink(req.file.path);
+    fs.unlinkSync(req.file.path);
     return res.status(201).json({ user, message: 'data upload successfully' })
   } catch  (error) {
     console.log(error)
     return res.status(500).json({ error, message: 'internal server error ' })
   }
 
-}
-
-const deleteImage = async (image) => {
-  unlinkFile(image)
 }
 
 export const deleteUser = async (req, res) => {
@@ -109,7 +104,7 @@ export const deleteUser = async (req, res) => {
     const user = await Image.findOne({ where: { name } })
 
     if (user.image !== undefined) {
-      unlinkFile('./public/temporal-images/' + user.image)
+      if(fs.existsSync('./public/temporal-images/' + user.image)) unlinkFile('./public/temporal-images/' + user.image)
       unlinkFile('./public/images/' + user.image)
     }
     await user.destroy()
